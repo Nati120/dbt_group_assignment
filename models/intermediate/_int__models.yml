@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: int_air_quality_daily
+    description: Hourly air quality aggregated to one row per city per day.
+    columns:
+      - name: location_id
+        description: Foreign key to stg_locations.
+        tests:
+          - not_null
+      - name: weather_date
+        description: Calendar date.
+        tests:
+          - not_null
+      - name: avg_european_aqi
+        description: Mean European AQI across the day's hours.
+      - name: max_european_aqi
+        description: Worst (max) European AQI during the day.
+      - name: avg_pm2_5
+        description: Mean PM2.5 across the day's hours.
+      - name: avg_pm10
+        description: Mean PM10 across the day's hours.
+
+  - name: int_weather_flags
+    description: >
+      Per city-day comfort flags. A day is comfortable when temp_mean is 18-26C,
+      precipitation < 1mm, and max wind < 30 km/h.
+    columns:
+      - name: location_id
+        tests:
+          - not_null
+      - name: weather_date
+        tests:
+          - not_null
+      - name: is_comfortable
+        description: True when the day meets all comfort thresholds.
+      - name: is_rainy
+        description: True when precipitation >= 1mm.
+      - name: is_hot
+        description: True when max temperature >= 32C.
+      - name: is_windy
+        description: True when max wind speed >= 38 km/h.
+
+  - name: int_city_day_weather
+    description: One row per city per day combining weather actuals, comfort flags, and daily air quality.
+    columns:
+      - name: location_id
+        tests:
+          - not_null
+      - name: weather_date
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [location_id, weather_date]

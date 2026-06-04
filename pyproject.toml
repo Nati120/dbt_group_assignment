@@ -1,0 +1,17 @@
+[project]
+name = "dbt-group-assignment"
+version = "0.1.0"
+description = "Open-Meteo City Comfort Index — Analytics Engineering group project"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "dbt-core==1.8.0",
+    "dbt-duckdb>=1.8.0",
+    "duckdb==0.10.2",
+    "streamlit>=1.30.0",
+    "pandas",
+    "certifi",
+]
+
+[tool.uv]
+package = false

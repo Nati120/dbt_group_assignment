@@ -1,0 +1,124 @@
+version: 2
+
+models:
+  - name: stg_locations
+    description: One row per city. Cleaned city metadata from the Geocoding API.
+    columns:
+      - name: location_id
+        description: Open-Meteo location id. Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: city_name
+        description: City name.
+        tests:
+          - not_null
+      - name: country
+        description: Country name.
+      - name: country_code
+        description: ISO country code.
+      - name: region
+        description: First-level administrative region (admin1).
+      - name: latitude
+        description: Latitude in decimal degrees.
+        tests:
+          - not_null
+      - name: longitude
+        description: Longitude in decimal degrees.
+        tests:
+          - not_null
+      - name: timezone
+        description: IANA timezone of the city.
+      - name: elevation_m
+        description: Elevation in metres.
+      - name: population
+        description: City population, if known.
+      - name: extracted_at
+        description: UTC timestamp of the extraction run.
+
+  - name: stg_weather_daily
+    description: One row per city per day. Recent daily actuals (Forecast API past_days).
+    columns:
+      - name: location_id
+        description: Foreign key to stg_locations.
+        tests:
+          - not_null
+      - name: weather_date
+        description: Calendar date of the observation.
+        tests:
+          - not_null
+      - name: temp_max_c
+        description: Daily maximum 2m air temperature (Celsius).
+      - name: temp_min_c
+        description: Daily minimum 2m air temperature (Celsius).
+      - name: temp_mean_c
+        description: Daily mean 2m air temperature (Celsius).
+      - name: precipitation_mm
+        description: Total daily precipitation (millimetres).
+      - name: rain_mm
+        description: Total daily rain (millimetres).
+      - name: snowfall_cm
+        description: Total daily snowfall (centimetres).
+      - name: wind_speed_max_kmh
+        description: Maximum 10m wind speed (km/h).
+      - name: extracted_at
+        description: UTC timestamp of the extraction run.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [location_id, weather_date]
+
+  - name: stg_forecast_daily
+    description: One row per city per forecast date per run. Forecasted daily weather.
+    columns:
+      - name: location_id
+        description: Foreign key to stg_locations.
+        tests:
+          - not_null
+      - name: forecast_date
+        description: Date the forecast is for.
+        tests:
+          - not_null
+      - name: forecast_run_at
+        description: UTC timestamp of the extraction run (the forecast snapshot).
+        tests:
+          - not_null
+      - name: temp_max_c
+        description: Forecast daily maximum temperature (Celsius).
+      - name: temp_min_c
+        description: Forecast daily minimum temperature (Celsius).
+      - name: temp_mean_c
+        description: Forecast daily mean temperature (Celsius).
+      - name: precipitation_mm
+        description: Forecast total daily precipitation (millimetres).
+      - name: rain_mm
+        description: Forecast total daily rain (millimetres).
+      - name: snowfall_cm
+        description: Forecast total daily snowfall (centimetres).
+      - name: wind_speed_max_kmh
+        description: Forecast maximum 10m wind speed (km/h).
+
+  - name: stg_air_quality_hourly
+    description: One row per city per hour. Cleaned air quality observations.
+    columns:
+      - name: location_id
+        description: Foreign key to stg_locations.
+        tests:
+          - not_null
+      - name: observed_at
+        description: Hourly timestamp of the observation.
+        tests:
+          - not_null
+      - name: observed_date
+        description: Calendar date of the observation (derived from observed_at).
+      - name: pm10
+        description: Particulate matter < 10 micrometres (ug/m3).
+      - name: pm2_5
+        description: Particulate matter < 2.5 micrometres (ug/m3).
+      - name: carbon_monoxide
+        description: Carbon monoxide concentration (ug/m3).
+      - name: nitrogen_dioxide
+        description: Nitrogen dioxide concentration (ug/m3).
+      - name: ozone
+        description: Ozone concentration (ug/m3).
+      - name: european_aqi
+        description: European Air Quality Index (0 good - 100+ poor).

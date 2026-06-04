@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: open_meteo
+    description: Raw Open-Meteo CSV files loaded into DuckDB by scripts/load_duckdb.py.
+    schema: main
+    tables:
+      - name: raw_locations
+        description: One row per selected city, from the Geocoding API.
+      - name: raw_weather_daily
+        description: One row per city per day — recent daily weather (Forecast API past_days).
+      - name: raw_forecast_daily
+        description: One row per city per forecast date per extraction run — forecasted daily weather.
+      - name: raw_air_quality_hourly
+        description: One row per city per hour — air quality observations.

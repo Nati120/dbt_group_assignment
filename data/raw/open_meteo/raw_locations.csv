@@ -1,0 +1,6 @@
+location_id,city_name,country,country_code,admin1,latitude,longitude,timezone,elevation,population,extracted_at
+3117735,Madrid,Spain,ES,Madrid,40.4165,-3.70256,Europe/Madrid,665.0,3255944,2026-06-04T08:13:26+00:00
+3128760,Barcelona,Spain,ES,Catalonia,41.38879,2.15899,Europe/Madrid,15.0,1686208,2026-06-04T08:13:26+00:00
+2509954,Valencia,Spain,ES,Valencia,39.47391,-0.37966,Europe/Madrid,15.0,824340,2026-06-04T08:13:26+00:00
+2510911,Seville,Spain,ES,Andalusia,37.38283,-5.97317,Europe/Madrid,16.0,686741,2026-06-04T08:13:26+00:00
+3128026,Bilbao,Spain,ES,Basque Country,43.26271,-2.92528,Europe/Madrid,20.0,347342,2026-06-04T08:13:26+00:00
