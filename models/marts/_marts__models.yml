@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: dim_location
+    description: Conformed city dimension. One row per city.
+    columns:
+      - name: location_id
+        description: Primary key. Open-Meteo location id.
+        tests:
+          - unique
+          - not_null
+      - name: city_name
+        description: City name.
+        tests:
+          - not_null
+      - name: country
+        description: Country name.
+      - name: latitude
+        description: Latitude in decimal degrees.
+      - name: longitude
+        description: Longitude in decimal degrees.
+
+  - name: fct_city_weather_day
+    description: "Fact table. Grain: one row per city per day."
+    columns:
+      - name: city_weather_day_id
+        description: Surrogate key (location_id + weather_date).
+        tests:
+          - unique
+          - not_null
+      - name: location_id
+        description: Foreign key to dim_location.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_id
+      - name: weather_date
+        description: Calendar date of the city-day.
+        tests:
+          - not_null
+      - name: temp_mean_c
+        description: Daily mean temperature (Celsius).
+      - name: avg_european_aqi
+        description: Mean European AQI for the day (null if no air quality data).
+      - name: is_comfortable
+        description: True when the day met all comfort thresholds.
+      - name: comfort_score
+        description: Weighted daily comfort index, 0-100 (temp 40%, precip 25%, aqi 20%, wind 15%).
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [location_id, weather_date]
+
+  - name: mart_city_comfort_summary
+    description: "City Comfort Index. Grain: one row per city, aggregated over the loaded period."
+    columns:
+      - name: location_id
+        description: Primary key. Foreign key to dim_location.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_id
+      - name: city_name
+        description: City name.
+      - name: total_days
+        description: Number of days included for this city.
+      - name: avg_temp_c
+        description: Average daily mean temperature over the period.
+      - name: comfortable_days
+        description: Count of comfortable days.
+      - name: rainy_days
+        description: Count of rainy days (precipitation >= 1mm).
+      - name: windy_days
+        description: Count of windy days (max wind >= 38 km/h).
+      - name: hot_days
+        description: Count of hot days (max temp >= 32C).
+      - name: avg_aqi
+        description: Average daily European AQI over the period.
+      - name: comfort_score
+        description: City Comfort Index — average of the daily comfort score, 0-100. Higher is more comfortable.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
