@@ -33,6 +33,9 @@ dbt build                    # run + test all models
 
 # 5. How do I launch the dashboard?
 streamlit run streamlit_app/app.py
+
+# Or visit the live deployed dashboard:
+# https://city-comfort-index-dbt.streamlit.app
 ```
 
 ## What final models power the dashboard?
@@ -88,7 +91,7 @@ location keys, and a 0–100 range check on `comfort_score`.
 ## Reproducibility note
 
 The raw CSVs in `data/raw/open_meteo/` are committed so the project rebuilds
-identically. `weather.duckdb` is **not** committed — it is regenerated from the
-CSVs by `scripts/load_duckdb.py`.
+identically. `weather.duckdb` is committed to the repository and can also be
+regenerated from the CSVs by running `scripts/load_duckdb.py`.
 
 See `ASSIGNMENT.md` for the original brief.
