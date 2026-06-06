@@ -50,6 +50,35 @@ models:
       - name: weather_date
         tests:
           - not_null
+      - name: temp_mean_c
+        description: Daily mean temperature in Celsius.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -30
+              max_value: 55
+      - name: avg_european_aqi
+        description: Daily mean European AQI (null when no air quality data available).
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 500
+      - name: temp_score
+        description: Temperature sub-score (0-100). Peaks at 22°C mean temp; penalised when daily max exceeds 30°C.
+      - name: precip_score
+        description: Precipitation sub-score (0-100). 100 for dry days, decreasing with rainfall.
+      - name: wind_score
+        description: Wind sub-score (0-100). 100 for calm conditions, decreasing with wind speed.
+      - name: aqi_score
+        description: Air quality sub-score (0-100). 100 for very clean air; null when no AQI data available.
+      - name: comfort_score
+        description: >
+          Weighted daily comfort index (0-100): temperature 40%, precipitation 25%,
+          air quality 20%, wind 15%. Weights are renormalised when AQI data is missing.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [location_id, weather_date]
