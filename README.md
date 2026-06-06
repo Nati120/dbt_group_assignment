@@ -7,6 +7,14 @@ dbt on DuckDB, and explore it in a Streamlit dashboard.
 **Dashboard theme:** City Comfort Index — which cities had the most comfortable
 weather over the selected period?
 
+## Dashboard screenshots
+
+![Overview](docs/Captura%20de%20pantalla%202026-06-06%20122556.png)
+![Bar chart](docs/Captura%20de%20pantalla%202026-06-06%20122624.png)
+![Map](docs/Captura%20de%20pantalla%202026-06-06%20122645.png)
+![Temperature timeline](docs/Captura%20de%20pantalla%202026-06-06%20122700.png)
+![Comfort score timeline](docs/Captura%20de%20pantalla%202026-06-06%20122711.png)
+
 ## Stack
 
 - **DuckDB** — local warehouse (`weather.duckdb`, rebuilt from the committed raw CSVs)
