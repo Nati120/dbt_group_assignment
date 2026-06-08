@@ -86,8 +86,8 @@ def compute_forecast_comfort(df):
     # Wind score
     wind_score = (100 - (df["wind_speed_max_kmh"] - 15).clip(lower=0) * 3).clip(0, 100)
 
-    # Weighted score without AQI — renormalise weights: temp 50%, precip 31%, wind 19%
-    comfort = (temp_score * 0.50 + precip_score * 0.31 + wind_score * 0.19).round(1)
+    # Weighted score without AQI — renormalise weights: temp 50%, precip 30%, wind 20%
+    comfort = (temp_score * 0.50 + precip_score * 0.30 + wind_score * 0.20).round(1)
     return comfort
 
 
@@ -198,7 +198,7 @@ st.subheader("7-day forecast comfort")
 st.caption(
     "Estimated comfort score for the next 7 days based on the weather forecast. "
     "Air quality is not included in forecast data, so weights are redistributed: "
-    "temperature 50%, precipitation 31%, wind 19%."
+    "temperature 50%, precipitation 30%, wind 20%."
 )
 forecast_f = forecast[forecast["city_name"].isin(cities)].copy()
 if len(forecast_f):
