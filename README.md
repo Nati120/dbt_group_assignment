@@ -7,6 +7,14 @@ dbt on DuckDB, and explore it in a Streamlit dashboard.
 **Dashboard theme:** City Comfort Index — which cities had the most comfortable
 weather over the selected period?
 
+## Dashboard screenshots
+
+![Overview](docs/Captura%20de%20pantalla%202026-06-06%20122556.png)
+![Bar chart](docs/Captura%20de%20pantalla%202026-06-06%20122624.png)
+![Map](docs/Captura%20de%20pantalla%202026-06-06%20122645.png)
+![Temperature timeline](docs/Captura%20de%20pantalla%202026-06-06%20122700.png)
+![Comfort score timeline](docs/Captura%20de%20pantalla%202026-06-06%20122711.png)
+
 ## Stack
 
 - **DuckDB** — local warehouse (`weather.duckdb`, rebuilt from the committed raw CSVs)
@@ -33,6 +41,9 @@ dbt build                    # run + test all models
 
 # 5. How do I launch the dashboard?
 streamlit run streamlit_app/app.py
+
+# Or visit the live deployed dashboard:
+# https://city-comfort-index-dbt.streamlit.app
 ```
 
 ## What final models power the dashboard?
@@ -88,7 +99,7 @@ location keys, and a 0–100 range check on `comfort_score`.
 ## Reproducibility note
 
 The raw CSVs in `data/raw/open_meteo/` are committed so the project rebuilds
-identically. `weather.duckdb` is **not** committed — it is regenerated from the
-CSVs by `scripts/load_duckdb.py`.
+identically. `weather.duckdb` is committed to the repository and can also be
+regenerated from the CSVs by running `scripts/load_duckdb.py`.
 
 See `ASSIGNMENT.md` for the original brief.

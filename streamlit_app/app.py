@@ -78,7 +78,8 @@ col3.metric("Comfortable days", int(summary_f["comfortable_days"].sum()) if len(
 # --- Chart 1: ranking ---
 st.subheader("City ranking by comfort score")
 ranked = summary_f.sort_values("comfort_score", ascending=False)
-st.dataframe(ranked, use_container_width=True, hide_index=True)
+display_cols = [c for c in ranked.columns if c != "location_id"]
+st.dataframe(ranked[display_cols], use_container_width=True, hide_index=True)
 if len(ranked):
     st.bar_chart(ranked.set_index("city_name")["comfort_score"])
 
@@ -93,7 +94,13 @@ if len(map_df):
     st.map(map_df)
 
 # --- Chart 3: daily mean temperature trend ---
-st.subheader("Daily mean temperature")
+st.subheader("Daily mean temperature (°C)")
 if len(daily_f):
     pivot = daily_f.pivot_table(index="weather_date", columns="city_name", values="temp_mean_c")
     st.line_chart(pivot)
+
+# --- Chart 4: daily comfort score timeline ---
+st.subheader("Daily comfort score timeline")
+if len(daily_f):
+    pivot_comfort = daily_f.pivot_table(index="weather_date", columns="city_name", values="comfort_score")
+    st.line_chart(pivot_comfort)
