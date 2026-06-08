@@ -16,13 +16,34 @@ import streamlit as st
 DB_PATH = Path(__file__).resolve().parents[1] / "weather.duckdb"
 
 st.set_page_config(page_title="City Comfort Index", layout="wide")
-st.title("🌤️ City Comfort Index")
-st.caption(
-    "Main model **fct_city_weather_day** — grain: one row per city per day. "
-    "**comfort_score** is a weighted 0–100 daily index "
-    "(temperature 40%, precipitation 25%, air quality 20%, wind 15%); "
-    "the City Comfort Index is its average per city."
+st.title("City Comfort Index")
+st.markdown(
+    "A data-driven ranking of city weather comfort based on 31 days of observed meteorological "
+    "and air quality data from the Open-Meteo API. Use the filters on the left to explore by city and date range."
 )
+
+with st.expander("How is the comfort score calculated?"):
+    st.markdown(
+        """
+        Each day receives a **comfort score from 0 to 100** built from four weighted components:
+
+        | Component | Weight | Logic |
+        |---|---|---|
+        | Temperature | **40%** | Peaks at 22 °C mean temp; penalised when daily max exceeds 30 °C |
+        | Precipitation | **25%** | 100 for a dry day; drops 10 pts per mm of rain |
+        | Air quality | **20%** | Based on the European AQI — 100 = clean air, 0 = very poor |
+        | Wind | **15%** | 100 for calm conditions; penalised above 15 km/h |
+
+        A day is flagged **comfortable** when mean temp is 18–26 °C, precipitation < 1 mm, and max wind < 25 km/h.
+        When air quality data is unavailable, the remaining weights are renormalised so no city is unfairly penalised.
+
+        The **City Comfort Index** is the average daily comfort score over the selected period.
+
+        *Source model: `fct_city_weather_day` — grain: one row per city per day.*
+        """
+    )
+
+st.divider()
 
 
 @st.cache_data
@@ -54,6 +75,7 @@ if not DB_PATH.exists():
 summary, daily, locations = load_data()
 
 # --- Filters ---
+st.sidebar.header("Filters")
 all_cities = sorted(summary["city_name"].dropna().unique())
 cities = st.sidebar.multiselect("Cities", all_cities, default=all_cities)
 
@@ -71,20 +93,32 @@ if isinstance(date_range, tuple) and len(date_range) == 2:
 
 # --- KPIs ---
 col1, col2, col3 = st.columns(3)
-col1.metric("Cities", len(summary_f))
+col1.metric("Cities selected", len(summary_f))
 col2.metric("Avg comfort score", round(summary_f["comfort_score"].mean(), 1) if len(summary_f) else 0)
-col3.metric("Comfortable days", int(summary_f["comfortable_days"].sum()) if len(summary_f) else 0)
+col3.metric("Total comfortable days", int(summary_f["comfortable_days"].sum()) if len(summary_f) else 0)
 
-# --- Chart 1: ranking ---
+st.divider()
+
+# --- Ranking table ---
 st.subheader("City ranking by comfort score")
+st.caption(
+    "Cities ranked from highest to lowest comfort score over the selected period. "
+    "Comfortable days are days where all three thresholds (temperature, precipitation, wind) were met simultaneously."
+)
 ranked = summary_f.sort_values("comfort_score", ascending=False)
 display_cols = [c for c in ranked.columns if c != "location_id"]
 st.dataframe(ranked[display_cols], use_container_width=True, hide_index=True)
+
+st.subheader("Comfort score by city")
+st.caption("Average comfort score per city. Higher is better (scale: 0–100).")
 if len(ranked):
     st.bar_chart(ranked.set_index("city_name")["comfort_score"])
 
-# --- Chart 2: map of selected cities ---
+st.divider()
+
+# --- Map ---
 st.subheader("Selected cities")
+st.caption("Geographic location of the cities included in the analysis.")
 map_df = (
     locations[locations["city_name"].isin(cities)][["latitude", "longitude"]]
     .rename(columns={"latitude": "lat", "longitude": "lon"})
@@ -93,14 +127,24 @@ map_df = (
 if len(map_df):
     st.map(map_df)
 
-# --- Chart 3: daily mean temperature trend ---
+st.divider()
+
+# --- Temperature trend ---
 st.subheader("Daily mean temperature (°C)")
+st.caption(
+    "Day-by-day mean temperature per city. Useful for spotting heat waves or cold spells "
+    "that may have driven down comfort scores."
+)
 if len(daily_f):
     pivot = daily_f.pivot_table(index="weather_date", columns="city_name", values="temp_mean_c")
     st.line_chart(pivot)
 
-# --- Chart 4: daily comfort score timeline ---
+# --- Comfort score timeline ---
 st.subheader("Daily comfort score timeline")
+st.caption(
+    "Day-by-day comfort score per city. Dips typically correspond to rainy, hot, or windy days. "
+    "Compare this with the temperature chart above to identify the main drivers of discomfort."
+)
 if len(daily_f):
     pivot_comfort = daily_f.pivot_table(index="weather_date", columns="city_name", values="comfort_score")
     st.line_chart(pivot_comfort)
