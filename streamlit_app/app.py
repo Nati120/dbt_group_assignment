@@ -59,10 +59,36 @@ def load_data():
             """
         ).df()
         locations = con.execute("select * from dim_location").df()
+        forecast = con.execute(
+            """
+            select f.*, l.city_name
+            from stg_forecast_daily as f
+            join stg_locations as l using (location_id)
+            """
+        ).df()
     finally:
         con.close()
     daily["weather_date"] = pd.to_datetime(daily["weather_date"])
-    return summary, daily, locations
+    forecast["forecast_date"] = pd.to_datetime(forecast["forecast_date"])
+    return summary, daily, locations, forecast
+
+
+def compute_forecast_comfort(df):
+    """Estimate comfort score from forecast data (no AQI available)."""
+    # Temperature score: peaks at 22C, penalised above 30C max
+    temp_score = (100 - (df["temp_mean_c"] - 22).abs() * 5).clip(0, 100)
+    heat_penalty = ((df["temp_max_c"] - 30).clip(lower=0) * 3).clip(0, 100)
+    temp_score = (temp_score - heat_penalty).clip(0, 100)
+
+    # Precipitation score
+    precip_score = (100 - df["precipitation_mm"] * 10).clip(0, 100)
+
+    # Wind score
+    wind_score = (100 - (df["wind_speed_max_kmh"] - 15).clip(lower=0) * 3).clip(0, 100)
+
+    # Weighted score without AQI — renormalise weights: temp 50%, precip 31%, wind 19%
+    comfort = (temp_score * 0.50 + precip_score * 0.31 + wind_score * 0.19).round(1)
+    return comfort
 
 
 if not DB_PATH.exists():
@@ -72,7 +98,7 @@ if not DB_PATH.exists():
     )
     st.stop()
 
-summary, daily, locations = load_data()
+summary, daily, locations, forecast = load_data()
 
 # --- Filters ---
 st.sidebar.header("Filters")
@@ -107,7 +133,19 @@ st.caption(
 )
 ranked = summary_f.sort_values("comfort_score", ascending=False)
 display_cols = [c for c in ranked.columns if c != "location_id"]
-st.dataframe(ranked[display_cols], use_container_width=True, hide_index=True)
+ranked_display = ranked[display_cols].rename(columns={
+    "city_name": "City",
+    "country": "Country",
+    "total_days": "Days analyzed",
+    "avg_temp_c": "Avg temp (°C)",
+    "comfortable_days": "Comfortable days",
+    "rainy_days": "Rainy days",
+    "windy_days": "Windy days",
+    "hot_days": "Hot days",
+    "avg_aqi": "Avg AQI",
+    "comfort_score": "Comfort score",
+})
+st.dataframe(ranked_display, use_container_width=True, hide_index=True)
 
 st.subheader("Comfort score by city")
 st.caption("Average comfort score per city. Higher is better (scale: 0–100).")
@@ -136,7 +174,9 @@ st.caption(
     "that may have driven down comfort scores."
 )
 if len(daily_f):
-    pivot = daily_f.pivot_table(index="weather_date", columns="city_name", values="temp_mean_c")
+    daily_f_plot = daily_f.copy()
+    daily_f_plot["weather_date"] = daily_f_plot["weather_date"].dt.date
+    pivot = daily_f_plot.pivot_table(index="weather_date", columns="city_name", values="temp_mean_c")
     st.line_chart(pivot)
 
 # --- Comfort score timeline ---
@@ -146,5 +186,45 @@ st.caption(
     "Compare this with the temperature chart above to identify the main drivers of discomfort."
 )
 if len(daily_f):
-    pivot_comfort = daily_f.pivot_table(index="weather_date", columns="city_name", values="comfort_score")
+    daily_f_plot2 = daily_f.copy()
+    daily_f_plot2["weather_date"] = daily_f_plot2["weather_date"].dt.date
+    pivot_comfort = daily_f_plot2.pivot_table(index="weather_date", columns="city_name", values="comfort_score")
     st.line_chart(pivot_comfort)
+
+st.divider()
+
+# --- Forecast panel ---
+st.subheader("7-day forecast comfort")
+st.caption(
+    "Estimated comfort score for the next 7 days based on the weather forecast. "
+    "Air quality is not included in forecast data, so weights are redistributed: "
+    "temperature 50%, precipitation 31%, wind 19%."
+)
+forecast_f = forecast[forecast["city_name"].isin(cities)].copy()
+if len(forecast_f):
+    forecast_f["comfort_score_est"] = compute_forecast_comfort(forecast_f)
+    forecast_f["forecast_date"] = pd.to_datetime(forecast_f["forecast_date"]).dt.strftime("%b %d")
+    pivot_forecast = forecast_f.groupby(["forecast_date", "city_name"])["comfort_score_est"].mean().unstack("city_name")
+    st.line_chart(pivot_forecast)
+
+    st.caption("Forecast summary by city")
+    forecast_summary = (
+        forecast_f.groupby("city_name")
+        .agg(
+            avg_temp_c=("temp_mean_c", "mean"),
+            total_precip_mm=("precipitation_mm", "sum"),
+            avg_wind_kmh=("wind_speed_max_kmh", "mean"),
+            est_comfort_score=("comfort_score_est", "mean"),
+        )
+        .round(1)
+        .reset_index()
+        .sort_values("est_comfort_score", ascending=False)
+        .rename(columns={
+            "city_name": "City",
+            "avg_temp_c": "Avg temp (°C)",
+            "total_precip_mm": "Total precip (mm)",
+            "avg_wind_kmh": "Avg wind (km/h)",
+            "est_comfort_score": "Est. comfort score",
+        })
+    )
+    st.dataframe(forecast_summary, use_container_width=True, hide_index=True)
