@@ -9,11 +9,12 @@ weather over the selected period?
 
 ## Dashboard screenshots
 
-![Overview](docs/Captura%20de%20pantalla%202026-06-06%20122556.png)
-![Bar chart](docs/Captura%20de%20pantalla%202026-06-06%20122624.png)
-![Map](docs/Captura%20de%20pantalla%202026-06-06%20122645.png)
-![Temperature timeline](docs/Captura%20de%20pantalla%202026-06-06%20122700.png)
-![Comfort score timeline](docs/Captura%20de%20pantalla%202026-06-06%20122711.png)
+![1](docs/1.png)
+![2](docs/2.png)
+![3](docs/3.png)
+![4](docs/4.png)
+![5](docs/5.png)
+![6](docs/6.png)
 
 ## Stack
 
