@@ -18,7 +18,7 @@ DB_PATH = Path(__file__).resolve().parents[1] / "weather.duckdb"
 st.set_page_config(page_title="City Comfort Index", layout="wide")
 st.title("City Comfort Index")
 st.markdown(
-    "A data-driven ranking of city weather comfort based on 31 days of observed meteorological "
+    "A data-driven ranking of city weather comfort based on observed meteorological "
     "and air quality data from the Open-Meteo API. Use the filters on the left to explore by city and date range."
 )
 
@@ -50,10 +50,9 @@ st.divider()
 def load_data():
     con = duckdb.connect(str(DB_PATH), read_only=True)
     try:
-        summary = con.execute("select * from mart_city_comfort_summary").df()
         daily = con.execute(
             """
-            select f.*, d.city_name
+            select f.*, d.city_name, d.country
             from fct_city_weather_day as f
             join dim_location as d using (location_id)
             """
@@ -70,7 +69,26 @@ def load_data():
         con.close()
     daily["weather_date"] = pd.to_datetime(daily["weather_date"])
     forecast["forecast_date"] = pd.to_datetime(forecast["forecast_date"])
-    return summary, daily, locations, forecast
+    return daily, locations, forecast
+
+
+def compute_summary(daily_df):
+    """Aggregate daily fact rows into a per-city summary respecting any active filters."""
+    return (
+        daily_df.groupby(["city_name", "country"])
+        .agg(
+            total_days=("weather_date", "count"),
+            avg_temp_c=("temp_mean_c", "mean"),
+            comfortable_days=("is_comfortable", "sum"),
+            rainy_days=("is_rainy", "sum"),
+            windy_days=("is_windy", "sum"),
+            hot_days=("is_hot", "sum"),
+            avg_aqi=("avg_european_aqi", "mean"),
+            comfort_score=("comfort_score", "mean"),
+        )
+        .round(1)
+        .reset_index()
+    )
 
 
 def compute_forecast_comfort(df):
@@ -98,11 +116,11 @@ if not DB_PATH.exists():
     )
     st.stop()
 
-summary, daily, locations, forecast = load_data()
+daily, locations, forecast = load_data()
 
 # --- Filters ---
 st.sidebar.header("Filters")
-all_cities = sorted(summary["city_name"].dropna().unique())
+all_cities = sorted(daily["city_name"].dropna().unique())
 cities = st.sidebar.multiselect("Cities", all_cities, default=all_cities)
 
 min_date = daily["weather_date"].min().date()
@@ -111,11 +129,13 @@ date_range = st.sidebar.date_input(
     "Date range", value=(min_date, max_date), min_value=min_date, max_value=max_date
 )
 
-summary_f = summary[summary["city_name"].isin(cities)]
 daily_f = daily[daily["city_name"].isin(cities)]
 if isinstance(date_range, tuple) and len(date_range) == 2:
     start, end = pd.to_datetime(date_range[0]), pd.to_datetime(date_range[1])
     daily_f = daily_f[(daily_f["weather_date"] >= start) & (daily_f["weather_date"] <= end)]
+
+# Summary computed dynamically from filtered daily data — always reflects active filters
+summary_f = compute_summary(daily_f)
 
 # --- KPIs ---
 col1, col2, col3 = st.columns(3)
@@ -132,8 +152,7 @@ st.caption(
     "Comfortable days are days where all three thresholds (temperature, precipitation, wind) were met simultaneously."
 )
 ranked = summary_f.sort_values("comfort_score", ascending=False)
-display_cols = [c for c in ranked.columns if c != "location_id"]
-ranked_display = ranked[display_cols].rename(columns={
+ranked_display = ranked.rename(columns={
     "city_name": "City",
     "country": "Country",
     "total_days": "Days analyzed",
