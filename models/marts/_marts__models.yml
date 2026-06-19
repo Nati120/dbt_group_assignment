@@ -77,7 +77,7 @@ models:
       - name: rainy_days
         description: Count of rainy days (precipitation >= 1mm).
       - name: windy_days
-        description: Count of windy days (max wind >= 38 km/h).
+        description: Count of windy days (max wind >= 25 km/h).
       - name: hot_days
         description: Count of hot days (max temp >= 32C).
       - name: avg_aqi
