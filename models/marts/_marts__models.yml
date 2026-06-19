@@ -88,3 +88,47 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 100
+
+  - name: fct_forecast_city_day
+    description: >
+      Forecast fact table. Grain: one row per city per forecast date (latest extraction run).
+      Includes an estimated comfort score without AQI (not available in forecast data).
+      Weights: temperature 50%, precipitation 30%, wind 20%.
+    columns:
+      - name: forecast_day_id
+        description: Surrogate key (location_id + forecast_date).
+        tests:
+          - unique
+          - not_null
+      - name: location_id
+        description: Foreign key to dim_location.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_id
+      - name: forecast_date
+        description: Forecasted calendar date.
+        tests:
+          - not_null
+      - name: temp_mean_c
+        description: Forecasted daily mean temperature (Celsius).
+      - name: precipitation_mm
+        description: Forecasted total precipitation (mm).
+      - name: wind_speed_max_kmh
+        description: Forecasted maximum wind speed (km/h).
+      - name: temp_score
+        description: Temperature sub-score (0-100).
+      - name: precip_score
+        description: Precipitation sub-score (0-100).
+      - name: wind_score
+        description: Wind sub-score (0-100).
+      - name: comfort_score_est
+        description: Estimated comfort score (0-100) without AQI. Weights — temp 50%, precip 30%, wind 20%.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [location_id, forecast_date]

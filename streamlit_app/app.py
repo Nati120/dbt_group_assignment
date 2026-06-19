@@ -61,9 +61,9 @@ def load_data():
         locations = con.execute("select * from dim_location").df()
         forecast = con.execute(
             """
-            select f.*, l.city_name
-            from stg_forecast_daily as f
-            join stg_locations as l using (location_id)
+            select f.*, d.city_name
+            from fct_forecast_city_day as f
+            join dim_location as d using (location_id)
             """
         ).df()
     finally:
@@ -202,7 +202,6 @@ st.caption(
 )
 forecast_f = forecast[forecast["city_name"].isin(cities)].copy()
 if len(forecast_f):
-    forecast_f["comfort_score_est"] = compute_forecast_comfort(forecast_f)
     forecast_f["forecast_date"] = pd.to_datetime(forecast_f["forecast_date"]).dt.strftime("%b %d")
     pivot_forecast = forecast_f.groupby(["forecast_date", "city_name"])["comfort_score_est"].mean().unstack("city_name")
     st.line_chart(pivot_forecast)
