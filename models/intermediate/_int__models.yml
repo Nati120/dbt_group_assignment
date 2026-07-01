@@ -24,7 +24,7 @@ models:
   - name: int_weather_flags
     description: >
       Per city-day comfort flags. A day is comfortable when temp_mean is 18-26C,
-      precipitation < 1mm, and max wind < 30 km/h.
+      precipitation < 1mm, and max wind < 25 km/h.
     columns:
       - name: location_id
         tests:
@@ -39,7 +39,7 @@ models:
       - name: is_hot
         description: True when max temperature >= 32C.
       - name: is_windy
-        description: True when max wind speed >= 38 km/h.
+        description: True when max wind speed >= 25 km/h.
 
   - name: int_city_day_weather
     description: One row per city per day combining weather actuals, comfort flags, and daily air quality.
